@@ -6,7 +6,7 @@ except ImportError:
     import Tkinter as tk
     from Tkinter import ttk as ttk
 
-from tree import *
+from old.ui.tree import *
 
 
 class Middle(ttk.Frame):

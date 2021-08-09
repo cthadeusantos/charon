@@ -12,7 +12,7 @@ from sys import platform as _platform
 from sys import version_info
 
 from circuit import Circuit
-from functions import getvalue
+from static_functions import getvalue
 from load import Load, Lighting, Socket, Motor, Specific
 from project import Project
 from switchboard import SwitchBoard
@@ -224,11 +224,11 @@ class WhichProperties(ttk.Frame):
             self.labels[item].destroy()
             self.values[item].destroy()
         selected = getvalue(self.controller.frames[Tree].elements, selected[0])
-        self.show_properties2(selected.properties())
+        self.show_properties2(selected.attributes())
 
-    def show_properties(self, properties):
-        if properties is None:
-            # properties = {}
+    def show_properties(self, attributes):
+        if attributes is None:
+            # attributes = {}
             return
         self.labels = {}
         self.values = {}
@@ -236,7 +236,7 @@ class WhichProperties(ttk.Frame):
         _index = 0
         _testString = ''
 
-        for _index, item in enumerate(properties):
+        for _index, item in enumerate(attributes):
             self.labels[item] = ttk.Label(self, text=item)
             self.labels[item].grid(column=1,
                                    row=_index,
@@ -249,7 +249,7 @@ class WhichProperties(ttk.Frame):
                                      mode,
                                      _testString=_testString: self.callback(_testString)
                               )
-            _testString.set(properties[item]['value'])
+            _testString.set(attributes[item]['value'])
             self.values[item] = tk.Entry(self,
                                          width=12,
                                          text=_testString
@@ -261,9 +261,9 @@ class WhichProperties(ttk.Frame):
             string = self.values.__str__().split("!")[-1][:-2]
             self.entry_focus_widgetname[string] = {item: _testString}
 
-    def show_properties2(self, properties):
-        if properties is None:
-            # properties = {}
+    def show_properties2(self, attributes):
+        if attributes is None:
+            # attributes = {}
             return
         # self.pattern1 = re.compile("^\w{0,10}$")
         # self.pattern1 = re.compile(r'(..)/(..)/(....)')
@@ -273,13 +273,13 @@ class WhichProperties(ttk.Frame):
         _index = 0
         _testString = ''
 
-        for _index, item in enumerate(properties):
+        for _index, item in enumerate(attributes):
             self.labels[item] = ttk.Label(self, text=item)
             self.labels[item].grid(column=1, row=_index, stick=(tk.N, tk.W, tk.E, tk.S))
             self.pattern = re.compile("^\w{0,10}$")
             _testString = tk.StringVar()
             _testString.trace("w", lambda name, index, mode, _testString=_testString: self.callback(_testString))
-            _testString.set(properties[item]['value'])
+            _testString.set(attributes[item]['value'])
             vcmd = (self.register(self.validate_username), "%i", "%P")
             # vcmd = (self.register(self.validate_username2),  "%P")
             self.values[item] = tk.Entry(self,

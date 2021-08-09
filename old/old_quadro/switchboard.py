@@ -2,8 +2,6 @@ from circuit import Circuit
 from load import Load
 from switchgear import CircuitBreaker
 import math
-import json
-from datetime import *
 # from random import randint
 
 #
@@ -38,7 +36,7 @@ def equilibrium(loads, calls=1):
     min, max = maxminposition([accumulate[0], accumulate[1], accumulate[2]])
     loop_over = False   # Stop condition to main while loop
     pointer = calls     # auxiliary variable because 'calls' cannot be modified
-    while not loop_over and (max != 0 or min !=0) :
+    while not loop_over:
         #index = randint(0, lenght_matrix-1)  # Random select index, this is the best, but return random results
         index = pointer % lenght_matrix   # Select one-by-one index load if conditions not deal, return stable results
         phases = 3 - loads[index].count(0)
@@ -65,12 +63,9 @@ def equilibrium_check(accumulate, average, calls):
     """
     Define stop conditions
     """
-    if average != 0:
-        vpA = abs(accumulate[0] - average) / average    # Calculate A-Phase imbalance
-        vpB = abs(accumulate[1] - average) / average    # Calculate B-Phase imbalance
-        vpC = abs(accumulate[2] - average) / average    # Calculate C-Phase imbalance
-    else:
-        vpA, vpB, vpC = 0, 0, 0
+    vpA = abs(accumulate[0] - average) / average    # Calculate A-Phase imbalance
+    vpB = abs(accumulate[1] - average) / average    # Calculate B-Phase imbalance
+    vpC = abs(accumulate[2] - average) / average    # Calculate C-Phase imbalance
     PUI = max(vpA, vpB, vpC)                        # Stop condition , select maximum imbalance
     # PUI and calls is stop condition to recursion
     if (PUI < 0.03) or (PUI < 0.05 and calls > 20) or\
@@ -96,7 +91,7 @@ class SwitchBoard(object):
         assert (distance >= 0), "Distance must be a non-negative number"
         assert (0 < demand_factor <= 1), "Demand factor must be greater than 0 until 1"
         assert (line_voltage > 0), "The phase voltage must be greater than 0"
-        self._idt = str(datetime.now().microsecond)
+        self._idt = idt
         self._tag = "Unnamed" if tag is not None else "Switchboard_" + str(SwitchBoard.counter)
         self._label = label
         self._description = description
@@ -107,7 +102,6 @@ class SwitchBoard(object):
         self._fct = fct
         self._fca = fca
         self._fcs = fcs
-        self._method = method
         self._elements = {}
         SwitchBoard.counter += 1
 
@@ -204,21 +198,6 @@ class SwitchBoard(object):
         """ Return load type """
         return self._elements
 
-    @property
-    def method(self):
-        return self._method
-
-    # @method.setter
-    # def method(self, value):
-    #     self._method = value
-
-    @property
-    def idt(self):
-        return self._idt
-
-    @idt.setter
-    def idt(self, value):
-        self._idt = value
 
     @staticmethod
     def average_power_factor():
@@ -229,30 +208,12 @@ class SwitchBoard(object):
         return len(self.elements)
 
     # PUBLIC METHODS
-    # def add(self, element):
-    #     assert (isinstance(element, Circuit) or isinstance(element, SwitchBoard)),\
-    #         "You must can only add circuits or boards to a board."
-    #     assert (self != element), "You cannot add a switchboard to yourself."
-    #     assert (element not in self.elements), "The element already exists in this switchboard."
-    #     self._elements[element.tag] = element
-
-    def add(self, *elements):
-        """Add new load"""
-        for element in elements:
-            assert (isinstance(element, Circuit) or isinstance(element, SwitchBoard)), \
-                "You must can only add circuits or boards to a board."
-            assert (self != element), "You cannot add a switchboard to yourself."
-            assert (element not in self.elements), "The element already exists in this switchboard."
-            self._elements[element.tag] = element
-
-    def copy(self):
-        new = self.__class__(*self.parameters())
-        for element in self.elements:
-            instance = self.elements[element]
-            new.add(instance.copy())
-            # copy_instance = instance.__class__(*instance.parameters())
-            # new.add(copy_instance)
-        return new
+    def add(self, element):
+        assert (isinstance(element, Circuit) or isinstance(element, SwitchBoard)),\
+            "You must can only add circuits or boards to a board."
+        assert (self != element), "You cannot add a switchboard to yourself."
+        assert (element not in self.elements), "The element already exists in this switchboard."
+        self._elements[element.tag] = element
 
     def delete(self, item=None):
         if item is None:
@@ -328,10 +289,10 @@ class SwitchBoard(object):
             element = self.elements[element]
             circuit_current = self.circuit_current_correction(element)
             if isinstance(element, SwitchBoard):
-                line = json.loads(element.attributes())
+                line = element.attributes()
             elif isinstance(element, Circuit):
-                line = json.loads(element.attributes())
-                line['voltage'] = self.list_circuit_voltage(element)
+                line = element.attributes()
+                line['voltage'] = self.list_circuit_voltage(element),
                 line['current'] = circuit_current
                 line['power_factor'] = self.list_power_factor(self)
             else:
@@ -354,68 +315,35 @@ class SwitchBoard(object):
             table[index]['division'] = value
 
         # Accumulate values
-        line = {'tag': 'TOTAL',
-                'description': '',
+        line = {'tag': 'TOTAL', 'description': '',
                 'phases': '',
-                'voltage': '',
-                'active_power': 0,
+                'voltage': '', 'active_power': 0,
                 'apparent_power': 0,
                 'reactive_power': 0,
                 'current': '',
                 'protection': '',
-                'power_factor': 0,
-                'loads': [],
-                'division': [0, 0, 0]}
+                'power_factor': 0, 'loads': [],
+                'division': [0,0,0]}
         for circuit in table:
-            line['active_power'] = round(line['active_power'] + circuit['active_power']['value'], 2)
-            line['apparent_power'] = round(line['apparent_power'] + circuit['apparent_power']['value'], 2)
-            line['reactive_power'] = round(line['reactive_power'] + circuit['reactive_power']['value'], 2)
+            line['active_power'] = round(line['active_power'] + circuit['active_power'], 2)
+            line['apparent_power'] = round(line['apparent_power'] + circuit['apparent_power'], 2)
+            line['reactive_power'] = round(line['reactive_power'] + circuit['reactive_power'], 2)
             line['division'][0] = round(line['division'][0] + circuit['division'][0], 2)
             line['division'][1] = round(line['division'][1] + circuit['division'][1], 2)
             line['division'][2] = round(line['division'][2] + circuit['division'][2], 2)
         table.append(line)
         return table
 
-    def attributes(self, parameter=None):
-        parameters = {
-                "tag": self.tag,
-                "label": self.label,
-                "description": self.description,
-                "line_voltage": self.line_voltage,
-                "phases": self.phases,
-                "distance": self.distance,
-                "demand_factor": self.demand_factor,
-                "fct": self.fct,
-                "fca": self.fca,
-                "fcs": self.fcs,
-            }
-        try:
-            if parameter is not None:
-                return json.dumps(parameters[parameter])
-        except (KeyError, NameError):
-            raise Exception("Error at parameters!")
-        return json.dumps(parameters)
-    
-    def format(self, parameter=None):
-        parameters = {
-                "tag": "^\w{0,10}$",
-                "label": "^\w{0,10$",
-                "description": "^\w{0,10$",
-                "line_voltage": "^\w{0,10$",
-                "phases": "^\w{0,10$",
-                "distance": "^\w{0,10$",
-                "demand_factor": "^\w{0,10$",
-                "fct": "^\w{0,10$",
-                "fca": "^\w{0,10$",
-                "fcs": "^\w{0,10$",
-            }
-        try:
-            if parameter is not None:
-                return json.dumps(parameters[parameter])
-        except (KeyError, NameError):
-            raise Exception("Error at parameters!")
-        return json.dumps(parameters)
-
-    def parameters(self):
-        return self.label, self.line_voltage, self.phases, self.distance, self.demand_factor,\
-               self.fct, self.fca, self.fcs, self.method, self.description, self.tag, self.idt
+    def attributes(self):
+        return {
+            "tag": {"value": self.tag, "regex": "^\w{0,10}$"},
+            "label": {"value": self.label, "regex": "^\w{0,10}$"},
+            "description": {"value": self.description, "regex": "^\w{0,10}$"},
+            "line_voltage": {"value": self.line_voltage, "regex": "^\w{0,10}$"},
+            "phases": {"value": self.phases, "regex": "^\w{0,10}$"},
+            "distance": {"value": self.distance, "regex": "^\w{0,10}$"},
+            "demand_factor": {"value": self.demand_factor, "regex": "^\w{0,10}$"},
+            "fct": {"value": self.fct, "regex": "^\w{0,10}$"},
+            "fca": {"value": self.fca, "regex": "^\w{0,10}$"},
+            "fcs": {"value": self.fcs, "regex": "^\w{0,10}$"},
+        }

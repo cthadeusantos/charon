@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from math import tan, acos
+import json
+from datetime import *
 
 
 class Load(ABC):
@@ -8,16 +10,17 @@ class Load(ABC):
     You never call this class
     """
     counter = 1     # Static variable
+
     @abstractmethod
     def __init__(self, input_power=0.0, power_factor=0.95, tag=None, idt=None):
         """
         Constructor to load
         :raises ValueError: if input_power or power_factor are invalids
         """
-        assert (input_power > 0), "input power must be a non-negative number"
+        assert (input_power >= 0), "input power must be a non-negative number"
         assert (0 < power_factor <= 1), "power factor must be greater than 0 until 1"
         self._tag = tag if tag is not None else str(Load.counter)
-        self.idt = idt
+        self.idt = str(datetime.now().microsecond)
         self._input_power = input_power
         self._power_factor = power_factor
         self._qty = 1
@@ -80,51 +83,111 @@ class Load(ABC):
         """ Delete load """
         del self
 
+    def copy(self):
+        new = self.__class__
+        return new(*self.parameters())
+
     @abstractmethod
-    def properties(self):
-        """ Return load properties """
+    def attributes(self):
+        """ Return load attributes """
+        pass
+    
+    @abstractmethod
+    def format(self):
+        """ Return load attributes """
+        pass
+
+    @abstractmethod
+    def parameters(self):
         pass
 
 
 class Specific(Load):
     """Class to define a Specific Load"""
-    def __init__(self, input_power=1.0, power_factor=1.0, tag=None, idt=None):
+    def __init__(self, input_power=0.0, power_factor=1.0, tag=None, idt=None):
         super().__init__(input_power, power_factor, tag, idt)
         self._tag = "Specific_" + self._tag
         
-    def properties(self):
-        """the Specific's properties"""
-        return {
-            'tag': self.tag,
-            'input_power': self.input_power,
-            'power_factor': self.input_power,
-        }
+    def attributes(self, parameter=None):
+        """the Specific's attributes"""
+        parameters = {
+                'tag': self.tag ,
+                'input_power': self.input_power,
+                'power_factor': self.power_factor,
+            }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+    
+    def format(self, parameter=None):
+        """the Specific's attributes"""
+        parameters = {
+                'tag': "^\w{0,10}$",
+                'input_power': "^\w{0,10}$",
+                'power_factor': "^\w{0,10}$",
+            }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+
+    def parameters(self):
+        return self.input_power, self.power_factor, self.tag, self.idt
 
 
 class Lighting(Load):
     """Class to define a Lighting Load"""
-    def __init__(self, input_power=1.0, power_factor=1.0, qty=1, tag=None, idt=None):
+    def __init__(self, input_power=0.0, power_factor=1.0, qty=1, tag=None, idt=None):
         super().__init__(input_power, power_factor, tag, idt)
         self._tag = "Lighting_" + self._tag
         assert (qty > 0 == (int(qty) - qty)), "Quantity must be integer greater than 0"
         self._qty = qty
 
-    def properties(self):
-        """the Lighting's properties"""
-        return {
-            'tag': self.tag,
-            'input_power': self.input_power,
-            'power_factor': self.input_power,
-            'qty': self.qty,
-        }
+    def parameters(self):
+        return self.input_power, self.power_factor, self.qty, self.tag, self.idt
 
     def active_power(self):
         """Return the input power's lighting"""
         return self.input_power * self.qty
+    
+    def attributes(self, parameter=None):
+        """the Lighting's attributes"""
+        parameters = {
+                'tag': self.tag,
+                'input_power': self.input_power,
+                'power_factor': self.power_factor,
+                'qty': self.qty,
+            }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+
+    def format(self, parameter=None):
+        """the Lighting's attributes"""
+        parameters = {
+                'tag': "^\w{0,10}$",
+                'input_power': "^\w{0,10}$",
+                'power_factor': "^\w{0,10}$",
+                'qty': "^\w{0,10}$",
+            }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
 
 
 class Motor(Load):
-    def __init__(self, input_power=1.0, power_factor=1.0, efficiency=1.0, unit_type='HP', tag=None, idt=None):
+    def __init__(self, input_power=0.0, power_factor=1.0, efficiency=1.0, unit_type='HP', tag=None, idt=None):
         """Motor constructor"""
         super().__init__(input_power, power_factor, tag, idt)
         self._tag = "Motor_" + self._tag
@@ -165,19 +228,43 @@ class Motor(Load):
         """Return the motor's active power"""
         return round(self.mechanical_power() / self.efficiency, 2)
 
-    def properties(self):
-        """the motor's properties"""
-        return {
-            "tag": self._tag,
-            "input_power": self._input_power,
-            "power_factor": self._input_power,
-            "efficiency": self._efficiency,
-            "unit_type": self._unit_type,
-        }
+    def attributes(self, parameter=None):
+        """the motor's attributes"""
+        parameters = {"tag": self.tag,
+                      "input_power": self.input_power,
+                      "power_factor": self.power_factor,
+                      "efficiency": self.efficiency,
+                      "unit_type": self.unit_type,
+                      }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+
+    def format(self, parameter=None):
+        """the motor's attributes"""
+        parameters = {
+                "tag": "^\w{0,10}$",
+                "input_power": "^\w{0,10}$",
+                "power_factor": "^\w{0,10}$",
+                "efficiency": "^\w{0,10}$",
+                "unit_type": "^\w{0,10}$",
+            }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+
+    def parameters(self):
+        return self.input_power, self.power_factor, self.efficiency, self.unit_type, self.tag, self.idt
 
 
 class Socket(Load):
-    def __init__(self, input_power=1.0, power_factor=1.0, qty=1, tag=None, idt=None):
+    def __init__(self, input_power=0.0, power_factor=1.0, qty=1, tag=None, idt=None):
         super().__init__(input_power, power_factor, tag, idt)
         self._tag = "Socket_" + self._tag
         assert (qty > 0 == (int(qty) - qty)), "Quantity must be integer greater than 0"
@@ -187,11 +274,34 @@ class Socket(Load):
         """Return the input power's lighting"""
         return self.input_power * self.qty
 
-    def properties(self):
-        """the motor's properties"""
-        return {
-            "tag": self._tag,
-            "input_power": self.input_power,
-            "power_factor": self.power_factor,
-            "qty": self.qty,
-        }
+    def attributes(self, parameter=None):
+        """the motor's attributes"""
+        parameters = {"tag": self.tag,
+                      "input_power": self.input_power,
+                      "power_factor": self.power_factor,
+                      "qty": self.qty,
+                      }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+
+    def format(self, parameter=None):
+        """the motor attributes' format """
+        parameters = {"tag": "^\w{0,10}$",
+                      "input_power": "^\w{0,10}$",
+                      "power_factor": "^\w{0,10}$",
+                      "qty": "^\w{0,10}$",
+                      }
+        try:
+            if parameter is not None:
+                return json.dumps(parameters[parameter])
+        except (KeyError, NameError):
+            raise Exception("Error at parameters!")
+        return json.dumps(parameters)
+
+    def parameters(self):
+        return self.input_power, self.power_factor, self.qty, self.tag, self.idt
+
