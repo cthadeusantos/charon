@@ -367,14 +367,14 @@ class SwitchBoard(object):
                 'loads': [],
                 'division': [0, 0, 0]}
         for circuit in table:
-            line['active_power'] = round(line['active_power'] + circuit['active_power']['value'], 2)
-            line['apparent_power'] = round(line['apparent_power'] + circuit['apparent_power']['value'], 2)
-            line['reactive_power'] = round(line['reactive_power'] + circuit['reactive_power']['value'], 2)
+            line['active_power'] = round(line['active_power'] + circuit['active_power'], 2)
+            line['apparent_power'] = round(line['apparent_power'] + circuit['apparent_power'], 2)
+            line['reactive_power'] = round(line['reactive_power'] + circuit['reactive_power'], 2)
             line['division'][0] = round(line['division'][0] + circuit['division'][0], 2)
             line['division'][1] = round(line['division'][1] + circuit['division'][1], 2)
             line['division'][2] = round(line['division'][2] + circuit['division'][2], 2)
         table.append(line)
-        return table
+        return json.dumps(table)
 
     def attributes(self, parameter=None):
         parameters = {

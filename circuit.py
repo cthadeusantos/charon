@@ -257,3 +257,6 @@ class Circuit(object):
         return self.description, self.phases, self.distance, self.demand_factor,\
                self.vertical_lines, self.height, self.fct, self.fca, self.method,\
                self.remarks, self.tag, self.idt
+
+    def table_line(self):
+        return self.tag, self.description, self.phases, self.distance, self.sum_active_power(), self.sum_apparent_power(), self.elements

@@ -17,7 +17,6 @@ class Middle(ttk.Frame):
         self.values = []
         label = ttk.Label(self, text='Middle name:')
         label.grid(columnspan=4, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
-        print("Teste")
 
         # take the data
         lst = [(1, 'Raj', 'Mumbai', 19, 2, 4, 5, 6, 7, 8, 9, 19, 2, 4, 5, 6, 7, 8, 9),
@@ -290,34 +289,62 @@ class GUI:
     def __init__(self, toplevel):
         super().__init__()
         # Screen settings
-        screen_width = toplevel.winfo_screenwidth()
-        screen_height = toplevel.winfo_screenheight()
-        toplevel.geometry(str(screen_width-120)+"x"+str(screen_height-100))
-        # toplevel.geometry("640x480")
-        toplevel.title("Charon")
-        # toplevel.rowconfigure(9, {'minsize': 30})
-        # toplevel.columnconfigure(2, {'minsize': 30})
-
-        # Main container
-        master = ttk.Frame(toplevel, padding="3 3 12 12")
-        master.grid(column=0, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+        self.toplevel = toplevel
+        self.screen_width = 0
+        self.screen_height = 0
         self.frames = {}
+        self.initial_settings()
+        self.initialize()
+        self.toplevel.bind('<Configure>', self.resize)
 
-        position = [tk.N+tk.W+tk.NW, tk.N, tk.N+tk.E+tk.NE]
+    def initial_settings(self):
+        self.set_title("Charon")
+        self.set_init_size_window()
+
+    def set_title(self, title):
+        self.toplevel.title(title)
+
+    def set_init_size_window(self):
+        self.screen_width = self.toplevel.winfo_screenwidth()*.80
+        self.screen_height = self.toplevel.winfo_screenheight()*.80
+
+    def resize(self, event):
+        if event.widget == self.toplevel:
+            self.screen_width = event.width
+            self.screen_height = event.height
+            self.initialize()
+
+    def initialize(self):
+        self.toplevel.geometry(str(int(self.screen_width)) + "x" + str(int(self.screen_height)))
+        # self.toplevel.rowconfigure(9, {'minsize': 30})
+        # self.toplevel.columnconfigure(2, {'minsize': 30})
+        
+        # Main container
+        master = ttk.Frame(self.toplevel, padding="3 3 12 12")
+        master.grid(column=0, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+
+        position = [tk.N + tk.W + tk.NW, tk.N, tk.N + tk.E + tk.NE]
         # Build three columns (frame1=Tree, Frame2=Middle, Frame3=WhichProperties)
-        for column, F in enumerate([Tree, Middle, WhichProperties]):
-            width = int((screen_width - 120) / 5)
-            if column == 1:
+        # Frame 1 is size X
+        # Frame 2 is size X * 3
+        # Frame 3 is size X
+        height = int(self.screen_height) * .95
+        for index_frame, F in enumerate([Tree, Middle, WhichProperties]):
+            width = int(self.screen_width / 5)
+            if index_frame == 1:
                 width *= 3
-            frame = tk.Frame(master, width=width, height=600)
+            frame = tk.Frame(master, width=width, height=height)
             frame.grid_propagate(False)
-            frame.grid(column=column, row=0)
+            frame.grid(column=index_frame, row=0)
             container = F(frame, self)
             self.frames[F] = container
-            # frame.grid(column=column, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
-            container.grid(column=0, row=0, stick=position[column])
-            # if column == 1 or column == 2:
-            #     yscrollbar = tk.Scrollbar(container, width=10, orient=tk.VERTICAL)
-            #     yscrollbar.grid(column=19, row=0, rowspan=6, stick=tk.N+tk.S+tk.W+tk.E)
-            #     xscrollbar = tk.Scrollbar(container, width=10, orient=tk.HORIZONTAL)
-            #     xscrollbar.grid(column=0, row=6, columnspan=19, stick=tk.N+tk.E+tk.S+tk.W)
+            frame.grid(column=index_frame, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+            container.grid(column=0, row=0, stick=position[index_frame])
+            if index_frame == 1 or index_frame == 2:
+                yscrollbar = tk.Scrollbar(container, width=10, orient=tk.VERTICAL)
+                yscrollbar.grid(column=19, row=0, rowspan=50, stick=tk.N+tk.S+tk.W+tk.E)
+                xscrollbar = tk.Scrollbar(container, width=10, orient=tk.HORIZONTAL)
+                xscrollbar.grid(column=0, row=50, columnspan=19, stick=tk.N+tk.E+tk.S+tk.W)
+
+
+        
