@@ -327,15 +327,22 @@ class SwitchBoard(object):
         for element in self.elements:
             element = self.elements[element]
             circuit_current = self.circuit_current_correction(element)
-            if isinstance(element, SwitchBoard):
-                line = json.loads(element.attributes())
-            elif isinstance(element, Circuit):
-                line = json.loads(element.attributes())
+            line = json.loads(element.attributes())
+            if 'voltage' not in line.keys():
                 line['voltage'] = self.list_circuit_voltage(element)
                 line['current'] = circuit_current
                 line['power_factor'] = self.list_power_factor(self)
-            else:
-                line = {}
+
+            # if isinstance(element, SwitchBoard):
+            #     line = json.loads(element.attributes())
+            # elif isinstance(element, Circuit):
+            #     line = json.loads(element.attributes())
+            #     line['voltage'] = self.list_circuit_voltage(element)
+            #     line['current'] = circuit_current
+            #     line['power_factor'] = self.list_power_factor(self)
+            # else:
+            #     line = {}
+
             if element.phases == 1:
                 line['division'] = [circuit_current, 0, 0]
             elif element.phases == 2:
@@ -415,7 +422,3 @@ class SwitchBoard(object):
         except (KeyError, NameError):
             raise Exception("Error at parameters!")
         return json.dumps(parameters)
-
-    def parameters(self):
-        return self.label, self.line_voltage, self.phases, self.distance, self.demand_factor,\
-               self.fct, self.fca, self.fcs, self.method, self.description, self.tag, self.idt

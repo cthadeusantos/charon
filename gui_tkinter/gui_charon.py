@@ -208,7 +208,8 @@ class Tree(ttk.Treeview):
                 self.controller.frames[WhichProperties].values[item].destroy()
             selected = getvalue(self.controller.frames[Tree].elements, self.selected[0])
             if isinstance(selected, SwitchBoard):
-                x = selected.board()
+                x = json.loads(selected.board())
+                print(x)
             self.controller.frames[WhichProperties].screen(selected.attributes())
         except IndexError:
             pass
