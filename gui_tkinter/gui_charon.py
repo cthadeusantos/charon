@@ -1,3 +1,7 @@
+import copy
+import pickle
+from tkinter import *
+
 from settings import *
 from static_functions import *
 
@@ -195,6 +199,7 @@ class Tree(ttk.Treeview):
 
     def select(self, event):
         self.selected = self.selection()
+        print(self.selected)
         # print(self.elements, self.selected)
         # print(type(getvalue(self.elements, self.selected[0])) == SwitchBoard)
         # if type(getvalue(self.elements, self.selected[0])) == SwitchBoard:
@@ -221,7 +226,6 @@ class Tree(ttk.Treeview):
     def add_element(self, istype=None):
         selected = self.selected
         my_object = None
-        # key = None
         try:
             selected = selected[0]
         except IndexError:
@@ -291,12 +295,14 @@ class GUI:
         super().__init__()
         # Screen settings
         self.toplevel = toplevel
+        self.master = None
+        self.frame = None
         self.screen_width = 0
         self.screen_height = 0
         self.frames = {}
         self.initial_settings()
         self.initialize()
-        self.toplevel.bind('<Configure>', self.resize)
+        # self.toplevel.bind('<Configure>', self.resize)
 
     def initial_settings(self):
         self.set_title("Charon")
@@ -313,16 +319,32 @@ class GUI:
         if event.widget == self.toplevel:
             self.screen_width = event.width
             self.screen_height = event.height
-            self.initialize()
+            # self.resize_main_window()
 
     def initialize(self):
         self.toplevel.geometry(str(int(self.screen_width)) + "x" + str(int(self.screen_height)))
         # self.toplevel.rowconfigure(9, {'minsize': 30})
         # self.toplevel.columnconfigure(2, {'minsize': 30})
-        
+
+        ROW_GRID_BUTTON = 0
+        ROW_GRID_MAIN = 1
+
         # Main container
-        master = ttk.Frame(self.toplevel, padding="3 3 12 12")
-        master.grid(column=0, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+        self.master = ttk.Frame(self.toplevel, padding="3 3 12 12")
+        self.master.grid(column=0, row=ROW_GRID_BUTTON, stick=(tk.N, tk.W, tk.E, tk.S))
+        self.master.grid(column=0, row=ROW_GRID_MAIN, stick=(tk.N, tk.W, tk.E, tk.S))
+        # Button Tuple (str:Button Text, str:Image Path, method: command)
+        buttons = [("New", '', self.new),
+                   ("Save", '', self.save),
+                   ("Load", '', self.load)]
+        for index, item in enumerate(buttons):
+            text, image, command = item
+            button = Button(self.master, text=text, command=command)
+            button.grid(column=index, row=ROW_GRID_BUTTON, sticky=tk.W)
+        # btn1 = Button(master, text="Save", command=self.save)
+        # btn2 = Button(master, text="Load", command=self.load)
+        # btn1.grid(column=0, row=ROW_GRID_BUTTON)
+        # btn2.grid(column=1, row=ROW_GRID_BUTTON)
 
         position = [tk.N + tk.W + tk.NW, tk.N, tk.N + tk.E + tk.NE]
         # Build three columns (frame1=Tree, Frame2=Middle, Frame3=WhichProperties)
@@ -334,12 +356,12 @@ class GUI:
             width = int(self.screen_width / 5)
             if index_frame == 1:
                 width *= 3
-            frame = tk.Frame(master, width=width, height=height)
-            frame.grid_propagate(False)
-            frame.grid(column=index_frame, row=0)
-            container = F(frame, self)
+            self.frame = tk.Frame(self.master, width=width, height=height)
+            self.frame.grid_propagate(False)
+            self.frame.grid(column=index_frame, row=ROW_GRID_MAIN)
+            container = F(self.frame, self)
             self.frames[F] = container
-            frame.grid(column=index_frame, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+            self.frame.grid(column=index_frame, row=ROW_GRID_MAIN, stick=(tk.N, tk.W, tk.E, tk.S))
             container.grid(column=0, row=0, stick=position[index_frame])
             if index_frame == 1 or index_frame == 2:
                 yscrollbar = tk.Scrollbar(container, width=10, orient=tk.VERTICAL)
@@ -347,5 +369,40 @@ class GUI:
                 xscrollbar = tk.Scrollbar(container, width=10, orient=tk.HORIZONTAL)
                 xscrollbar.grid(column=0, row=50, columnspan=19, stick=tk.N+tk.E+tk.S+tk.W)
 
+    def new(self):
+        # self.frames[Tree].delete(*self.frames[Tree].get_children())
+        self.frames[Tree] = Tree(self.frame, self)
+        self.frame.grid(column=0, row=1, stick=(tk.N, tk.W, tk.E, tk.S))
 
-        
+    def save(self):
+        # self.elementos(self.frames[Tree].elements)
+        output_file = open('output.chr', "wb")
+        pickle.dump(self.frames[Tree].elements, output_file)
+        output_file.close()
+
+    def load(self):
+        input_file = open('output.chr', "rb")
+        self.frames[Tree].elements = pickle.load(input_file)
+        input_file.close()
+        self.load_build_tree_after_load(self.frames[Tree].elements)
+
+
+    def load_build_tree_after_load(self, nested_dict):
+        result = self.load_organize(nested_dict)
+        for index in range(len(result)):
+            num = hex(index+1)[2:].upper()
+            num = "I000"[:(4 - len(num))] + num
+            daddy, tag = result[num]
+            self.frames[Tree].insert(daddy, 'end', text=tag, tags=(tag,))
+        # self.toplevel.update()
+
+    def load_organize(self,  nested_dict, dict=None, daddy=''):
+        """Input: nested dict, value"""
+        if dict is None:
+            dict = {}
+        for key in nested_dict:
+            value = nested_dict[key]
+            dict.update({key: (daddy, value.tag)})
+            if value.elements is not None:
+                self.load_organize(value.elements, dict,  key)  # recursive call
+        return dict

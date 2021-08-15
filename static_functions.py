@@ -28,7 +28,10 @@ def getvalue(nested_dict, value):
         if k == value:  # found value
             return v
         elif hasattr(v, 'elements'):   # v is a dict
-            p = getvalue(v.elements, value)  # recursive call
+            if v.elements is None:
+                p = getvalue({}, value)  # recursive call
+            else:
+                p = getvalue(v.elements, value)  # recursive call
             if p is not None:
                 return p
 

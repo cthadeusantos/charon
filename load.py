@@ -24,7 +24,11 @@ class Load(ABC):
         self._input_power = input_power
         self._power_factor = power_factor
         self._qty = 1
-        Load.counter += 1
+
+    @property
+    def elements(self):
+        """ Return load type """
+        return None
 
     @property
     def tag(self):

@@ -1,0 +1,44 @@
+# .gitignore
+# Project files and directories
+#/makemake/static/
+#/makemake/tmp/
+/makemake2/media/
+<<<<<<< HEAD
+/makemake2/.idea/
+/makemake2/.vscode/
+.idea/
+.vscode/
+tmp/
+media/
+.idea/*
+=======
+>>>>>>> remotes/origin/cthadeusantos/gitignore-edited-online-with-bitbucket-1549318531795
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+# C extensions
+*.so
+# PyInstaller
+*.manifest
+*.spec
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+# Translations
+*.pot
+# Django stuff:
+*.log
+# Sphinx documentation
+docs/_build/
+# PyBuilder
+target/
