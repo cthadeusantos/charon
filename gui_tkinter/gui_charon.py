@@ -1,15 +1,13 @@
-import copy
 import pickle
-from tkinter import *
-
+# from settings import *
 from settings import *
 from static_functions import *
 
-from load import Load, Lighting, Socket, Motor, Specific
-from circuit import Circuit
-from switchboard import SwitchBoard
-from project import Project
-from sys import platform as _platform
+from project import *
+from switchboard import *
+from circuit import *
+from load import *
+
 
 import json
 
@@ -19,8 +17,10 @@ class Middle(ttk.Frame):
         super().__init__(parent)
         self.controller = controller
         self.values = []
-        label = ttk.Label(self, text='Middle name:')
-        label.grid(columnspan=4, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+        self.table = None
+        # label = ttk.Label(self, text='Middle name:')
+        # label.grid(columnspan=4, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+
 
         # take the data
         lst = [(1, 'Raj', 'Mumbai', 19, 2, 4, 5, 6, 7, 8, 9, 19, 2, 4, 5, 6, 7, 8, 9),
@@ -34,38 +34,38 @@ class Middle(ttk.Frame):
                (9, 'Shubham', 'Delhi', 21, 2, 4, 5, 6, 7, 8, 9, 19, 2, 4, 5, 6, 7, 8, 9),
                ]
         # code for creating table
-        for i in range(9):
-            for j in range(len(lst[i])):
-                label = tk.Entry(self,
-                                 width=3,
-                                 fg="blue",
-                                 font=('Arial', 10))
-                label.grid(column=j,
-                           row=1+i,
-                           stick=(tk.N, tk.W, tk.E, tk.S),
-                           ipadx=0)
-                label.insert(tk.END, lst[i][j])
+        self.tree = ttk.Treeview(self, column=("c1", "c2"), show='headings', height=8)
+        self.screen(self.table)
+        self.tree.grid(columnspan=4, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
 
+    def refresh(self, table):
+        self.table = table
+        self.tree.destroy()
+        self.tree = ttk.Treeview(self, column=("c1", "c2"), show='headings', height=8)
+        self.screen(self.table)
+        self.tree.grid(columnspan=4, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+        #         self.
+        # self.selected = self.selection()
+        # try:
+        #     for item in self.controller.frames[WhichProperties].values:
+        #         self.controller.frames[WhichProperties].labels[item].destroy()
+        #         self.controller.frames[WhichProperties].values[item].destroy()
+        #     selected = getvalue(self.controller.frames[Tree].elements, self.selected[0])
+        #     if isinstance(selected, SwitchBoard):
+        #         x = selected.board()
+        #         self.controller.frames[WhichProperties].screen(selected.convert_table_to_tuple(x))
+        #     self.controller.frames[WhichProperties].screen(selected.attributes())
 
-        #
-        # # code for creating table
-        # for i in range(3):
-        #     for j in range(3):
-        #         testString = tk.StringVar()
-        #         testString.trace("w", lambda name, index, mode, testString=testString: self.callback(testString))
-        #         testString.set("1")
-        #         self.controller.frames[self].values = tk.Entry(self, width=8, text=testString)
-        #         self.controller.frames[self].grid(row=i, column=j)
-        #         self.controller.frames[self].insert(tk.END, lst[i][j])
-
-
-class Table(ttk.Frame):
-    def __init__(self, parent, controller):
-        super().__init__(parent)
-        self.controller = controller
-        label = ttk.Label(self, text='Middle name:')
-        label.grid(column=1, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
-
+    def screen(self, table):
+        if table is None:
+            return
+        self.table = table
+        self.tree.column("# 1", anchor=tk.CENTER)
+        self.tree.heading("# 1", text="ID")
+        self.tree.column("# 2", anchor=tk.CENTER)
+        self.tree.heading("# 2", text="Company")
+        for line in self.table:
+            self.tree.insert('', 'end', text="1", values=(line['tag'], line['phase_voltage']))
 
 class WhichProperties(ttk.Frame):
     def __init__(self, parent, controller):
@@ -94,6 +94,13 @@ class WhichProperties(ttk.Frame):
                 setattr(element, key, new_value)
             except:
                 pass
+
+    def refresh(self, table):
+        self.table = table
+        self.tree.destroy()
+        self.tree = ttk.Treeview(self, column=("c1", "c2"), show='headings', height=8)
+        self.screen(self.table)
+        self.tree.grid(columnspan=4, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
 
     def screen(self, attributes=None):
         if attributes is None:
@@ -199,29 +206,23 @@ class Tree(ttk.Treeview):
 
     def select(self, event):
         self.selected = self.selection()
-        print(self.selected)
-        # print(self.elements, self.selected)
-        # print(type(getvalue(self.elements, self.selected[0])) == SwitchBoard)
-        # if type(getvalue(self.elements, self.selected[0])) == SwitchBoard:
-        #     try:
-        #         print(getvalue(self.elements, self.selected[0]).board())
-        #     except AssertionError:
-        #         pass
-        try:
-            for item in self.controller.frames[WhichProperties].values:
-                self.controller.frames[WhichProperties].labels[item].destroy()
-                self.controller.frames[WhichProperties].values[item].destroy()
-            selected = getvalue(self.controller.frames[Tree].elements, self.selected[0])
-            if isinstance(selected, SwitchBoard):
-                x = json.loads(selected.board())
-                print(x)
-            self.controller.frames[WhichProperties].screen(selected.attributes())
-        except IndexError:
-            pass
-        finally:
-            if self.selected == 0:
-                return
-            return self.selected
+        # try:
+        for item in self.controller.frames[WhichProperties].values:
+            self.controller.frames[WhichProperties].labels[item].destroy()
+            self.controller.frames[WhichProperties].values[item].destroy()
+        selected = getvalue(self.controller.frames[Tree].elements, self.selected[0])
+        if isinstance(selected, SwitchBoard):
+            x = selected.board()
+            print(x)
+            self.controller.frames[Middle].refresh(selected.board())
+            # self.controller.frames[WhichProperties].screen(selected.board())
+        self.controller.frames[WhichProperties].screen(selected.attributes())
+        # except IndexError:
+        #     pass
+        # finally:
+        #     if self.selected == 0:
+        #         return
+        #     return self.selected
 
     def add_element(self, istype=None):
         selected = self.selected
@@ -339,7 +340,7 @@ class GUI:
                    ("Load", '', self.load)]
         for index, item in enumerate(buttons):
             text, image, command = item
-            button = Button(self.master, text=text, command=command)
+            button = tk.Button(self.master, text=text, command=command)
             button.grid(column=index, row=ROW_GRID_BUTTON, sticky=tk.W)
         # btn1 = Button(master, text="Save", command=self.save)
         # btn2 = Button(master, text="Load", command=self.load)
@@ -385,7 +386,6 @@ class GUI:
         self.frames[Tree].elements = pickle.load(input_file)
         input_file.close()
         self.load_build_tree_after_load(self.frames[Tree].elements)
-
 
     def load_build_tree_after_load(self, nested_dict):
         result = self.load_organize(nested_dict)

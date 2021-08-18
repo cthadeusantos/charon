@@ -1,4 +1,5 @@
-from load import *
+import load
+
 import json
 from datetime import *
 
@@ -151,6 +152,18 @@ class Circuit(object):
     #     assert isinstance(load, Load), "ADD parameter must be a LOAD!"
     #     self.elements[load.tag] = load
 
+    def sum_active_power(self):
+        accumulator = sum([self.elements[item].active_power() for item in self.elements])
+        return round(accumulator, 1)
+
+    def sum_reactive_power(self):
+        accumulator = sum([self.elements[item].reactive_power() for item in self.elements])
+        return round(accumulator, 1)
+
+    def sum_apparent_power(self):
+        accumulator = sum([self.elements[item].apparent_power() for item in self.elements])
+        return round(accumulator, 1)
+
     def add(self, *loads):
         """Add new load"""
         for load in loads:
@@ -173,22 +186,10 @@ class Circuit(object):
             # new.add(copy_instance)
         return new
 
-    def sum_apparent_power(self):
-        accumulator = sum(self.elements[load].apparent_power() for load in self.elements)
-        return round(accumulator, 2)
-
-    def sum_active_power(self):
-        accumulator = sum(self.elements[load].active_power() for load in self.elements)
-        return round(accumulator, 2)
-
-    def sum_reactive_power(self):
-        accumulator = sum(self.elements[load].reactive_power() for load in self.elements)
-        return round(accumulator, 2)
-
     def average_power_factor(self):
         """Calculate the average power factor from the circuit"""
         list_power_factor = [self.elements[load].power_factor for load in self.elements]
-        return round(sum(list_power_factor) / self.quantity_loads(), 2)
+        return round(sum(list_power_factor) / self.quantity_loads(), 1)
 
     # def sum_distances(self):
     #     accumulator = sum(self.loads[load].distance for load in self.loads)
@@ -258,8 +259,13 @@ class Circuit(object):
                self.vertical_lines, self.height, self.fct, self.fca, self.method,\
                self.remarks, self.tag, self.idt
 
-    def table_line(self):
-        return self.tag, self.description,\
-               self.phases, self.distance,\
-               self.sum_active_power(), self.sum_apparent_power(),\
-               self.elements
+    # def table_line(self):
+    def digest(self):
+        return dict(tag=self.tag,
+                    description=self.description,
+                    phases=self.phases,
+                    distance=self.distance,
+                    active=self.sum_active_power(),
+                    reactive=self.sum_reactive_power(),
+                    apparent=self.sum_apparent_power(),
+                    elements=self.elements)

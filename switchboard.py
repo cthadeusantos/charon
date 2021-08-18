@@ -1,6 +1,5 @@
-from circuit import Circuit
-from load import Load
-from switchgear import CircuitBreaker
+from circuit import *
+
 import math
 import json
 from datetime import *
@@ -161,7 +160,7 @@ class SwitchBoard(object):
 
     @property
     def line_voltage(self):
-        return self._line_voltage
+        return round(self._line_voltage, 1)
 
     @line_voltage.setter
     def line_voltage(self, value):
@@ -223,8 +222,62 @@ class SwitchBoard(object):
     @staticmethod
     def average_power_factor():
         """Return power factor 1 to switchboards"""
-        return 1
+        return round(1, 1)
 
+    # def list_circuit_voltage(self, circuit):
+    def phase_voltage(self, component):
+        return round(self.line_voltage / math.sqrt(3), 2) if component.phases == 1 else round(self.line_voltage, 1)
+
+    # def average_power_factor(self, circuit):
+    #     return round(circuit.average_power_factor(), 2)
+
+    def sum_active_power(self):
+        accumulator = sum([self.elements[item].sum_active_power() for item in self.elements])
+        return round(accumulator, 2)
+
+    def sum_reactive_power(self):
+        accumulator = sum([self.elements[item].sum_reactive_power() for item in self.elements])
+        return round(accumulator, 2)
+
+    def sum_apparent_power(self):
+        accumulator = sum([self.elements[item].sum_apparent_power() for item in self.elements])
+        return round(accumulator, 2)
+
+    def current_without_correction(self, component):
+        if component.phases == 1:
+            return round(component.sum_apparent_power() / (self.line_voltage / math.sqrt(3)), 1)
+        elif component.phases == 2:
+            return round(component.sum_apparent_power() / self.line_voltage, 1)
+        elif component.phases == 3:
+            return round(component.sum_apparent_power() / (self.line_voltage * math.sqrt(3)), 1)
+
+    def current(self, component):
+        assert isinstance(component, SwitchBoard) or isinstance(component, Circuit),\
+            "Parameter must be SwitchBoard or Circuit!"
+        return round(self.current_without_correction(component) / (component.fct * component.fca * component.fcs), 1)
+
+    # def table_line(self):
+    def digest(self):
+        return dict(tag=self.tag,
+                    description=self.description,
+                    phases=self.phases,
+                    distance=self.distance,
+                    active=self.sum_active_power(),
+                    reactive=self.sum_reactive_power(),
+                    apparent=self.sum_apparent_power(),
+                    elements=self.elements)
+
+    def add(self, *elements):
+        """Add new load"""
+        for element in elements:
+            assert (isinstance(element, Circuit) or isinstance(element, SwitchBoard)), \
+                "You must can only add circuits or boards to a board."
+            assert (self != element), "You cannot add a switchboard to yourself."
+            assert (element not in self.elements), "The element already exists in this switchboard."
+            self._elements[element.tag] = element
+
+    ################
+    ################
     def quantity_elements(self):
         return len(self.elements)
 
@@ -235,15 +288,6 @@ class SwitchBoard(object):
     #     assert (self != element), "You cannot add a switchboard to yourself."
     #     assert (element not in self.elements), "The element already exists in this switchboard."
     #     self._elements[element.tag] = element
-
-    def add(self, *elements):
-        """Add new load"""
-        for element in elements:
-            assert (isinstance(element, Circuit) or isinstance(element, SwitchBoard)), \
-                "You must can only add circuits or boards to a board."
-            assert (self != element), "You cannot add a switchboard to yourself."
-            assert (element not in self.elements), "The element already exists in this switchboard."
-            self._elements[element.tag] = element
 
     def copy(self):
         new = self.__class__(*self.parameters())
@@ -259,38 +303,6 @@ class SwitchBoard(object):
             del self
         else:
             del self.elements[item.tag]
-
-    def sum_active_power(self):
-        accumulator = sum([self.elements[item].sum_active_power() for item in self.elements])
-        return round(accumulator, 2)
-
-    def sum_reactive_power(self):
-        accumulator = sum([self.elements[item].sum_reactive_power() for item in self.elements])
-        return round(accumulator, 2)
-
-    def sum_apparent_power(self):
-        accumulator = sum([self.elements[item].sum_apparent_power() for item in self.elements])
-        return round(accumulator, 2)
-
-    def calculate_circuit_current(self, circuit):
-        if circuit.phases == 1:
-            return round(circuit.sum_apparent_power() / (self.line_voltage / math.sqrt(3)), 2)
-        elif circuit.phases == 2:
-            return round(circuit.sum_apparent_power() / self.line_voltage, 2)
-        elif circuit.phases == 3:
-            return round(circuit.sum_apparent_power() / (self.line_voltage * math.sqrt(3)), 2)
-
-    def circuit_current_correction(self, circuit):
-        return round(self.calculate_circuit_current(circuit) / (circuit.fct * circuit.fca * circuit.fcs), 2)
-
-    def list_circuit_voltage(self, circuit):
-        if circuit.phases == 1:
-            return round(self.line_voltage / math.sqrt(3), 2)
-        else:
-            return round(self.line_voltage, 2)
-
-    def list_power_factor(self, circuit):
-        return round(circuit.average_power_factor(), 2)
 
     def sum_powers(self):
         """Totalize active power, reactive power and apparent power"""
@@ -321,67 +333,36 @@ class SwitchBoard(object):
             reactive_current = reactive / (3 * phase_voltage)
         return round(active_current, 2), round(apparent_current, 2), round(reactive_current, 2)
 
+    def current_division(self, component):
+        circuit_current = self.current(component)
+        if component.phases == 1:
+            division = [circuit_current, 0, 0]
+        elif component.phases == 2:
+            division = [circuit_current, circuit_current, 0]
+        else:
+            division = [circuit_current, circuit_current, circuit_current]
+        return division
+
     def board(self):
         assert (self.quantity_elements() > 0), "The Switchboard has no elements to calculate!"
         matrix_current, table = [], []
         for element in self.elements:
-            element = self.elements[element]
-            circuit_current = self.circuit_current_correction(element)
-            line = json.loads(element.attributes())
-            if 'voltage' not in line.keys():
-                line['voltage'] = self.list_circuit_voltage(element)
-                line['current'] = circuit_current
-                line['power_factor'] = self.list_power_factor(self)
-
-            # if isinstance(element, SwitchBoard):
-            #     line = json.loads(element.attributes())
-            # elif isinstance(element, Circuit):
-            #     line = json.loads(element.attributes())
-            #     line['voltage'] = self.list_circuit_voltage(element)
-            #     line['current'] = circuit_current
-            #     line['power_factor'] = self.list_power_factor(self)
-            # else:
-            #     line = {}
-
-            if element.phases == 1:
-                line['division'] = [circuit_current, 0, 0]
-            elif element.phases == 2:
-                line['division'] = [circuit_current, circuit_current, 0]
-            else:
-                line['division'] = [circuit_current, circuit_current, circuit_current]
-            table.append(line)
-
-        #
+            component = self.elements[element]
+            item = component.digest()
+            item.update({'phase_voltage': self.phase_voltage(component)})
+            item.update({'average_power_factor': self.average_power_factor()})
+            table.append(item)
+            matrix_current.append(self.current_division(component))
+            # table.append([item, self.phase_voltage(component), component.average_power_factor()])
         # Calculate balanced current matrix from unbalanced current matrix
-        #
-        for index in table:
-            matrix_current.append(index['division'])
         # Build table from balanced's loads
-        for index, value in enumerate(equilibrium(matrix_current)):
-            table[index]['division'] = value
+        aux = equilibrium(matrix_current)
+        for index, current in enumerate(aux):
+            table[index].update({'current': current})
+        return table
 
-        # Accumulate values
-        line = {'tag': 'TOTAL',
-                'description': '',
-                'phases': '',
-                'voltage': '',
-                'active_power': 0,
-                'apparent_power': 0,
-                'reactive_power': 0,
-                'current': '',
-                'protection': '',
-                'power_factor': 0,
-                'loads': [],
-                'division': [0, 0, 0]}
-        for circuit in table:
-            line['active_power'] = round(line['active_power'] + circuit['active_power'], 2)
-            line['apparent_power'] = round(line['apparent_power'] + circuit['apparent_power'], 2)
-            line['reactive_power'] = round(line['reactive_power'] + circuit['reactive_power'], 2)
-            line['division'][0] = round(line['division'][0] + circuit['division'][0], 2)
-            line['division'][1] = round(line['division'][1] + circuit['division'][1], 2)
-            line['division'][2] = round(line['division'][2] + circuit['division'][2], 2)
-        table.append(line)
-        return json.dumps(table)
+    def convert_table_to_tuple(self, table):
+        return [ (value) for key, value in table.items()]
 
     def attributes(self, parameter=None):
         parameters = {
@@ -402,7 +383,7 @@ class SwitchBoard(object):
         except (KeyError, NameError):
             raise Exception("Error at parameters!")
         return json.dumps(parameters)
-    
+
     def format(self, parameter=None):
         parameters = {
                 "tag": "^\w{0,10}$",
