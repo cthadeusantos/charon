@@ -343,26 +343,27 @@ class SwitchBoard(object):
             division = [circuit_current, circuit_current, circuit_current]
         return division
 
-    def board(self):
-        assert (self.quantity_elements() > 0), "The Switchboard has no elements to calculate!"
+    def distribution_board(self):
+        # assert (self.quantity_elements() > 0), "The Switchboard has no elements to calculate!"
         matrix_current, table = [], []
-        for element in self.elements:
-            component = self.elements[element]
-            item = component.digest()
-            item.update({'phase_voltage': self.phase_voltage(component)})
-            item.update({'average_power_factor': self.average_power_factor()})
-            table.append(item)
-            matrix_current.append(self.current_division(component))
-            # table.append([item, self.phase_voltage(component), component.average_power_factor()])
-        # Calculate balanced current matrix from unbalanced current matrix
-        # Build table from balanced's loads
-        aux = equilibrium(matrix_current)
-        for index, current in enumerate(aux):
-            table[index].update({'current': current})
+        if self.quantity_elements() > 0:
+            for element in self.elements:
+                component = self.elements[element]
+                item = component.digest()
+                item.update({'phase_voltage': self.phase_voltage(component)})
+                item.update({'average_power_factor': self.average_power_factor()})
+                table.append(item)
+                matrix_current.append(self.current_division(component))
+                # table.append([item, self.phase_voltage(component), component.average_power_factor()])
+            # Calculate balanced current matrix from unbalanced current matrix
+            # Build table from balanced's loads
+            aux = equilibrium(matrix_current)
+            for index, current in enumerate(aux):
+                table[index].update({'current': current})
         return table
 
-    def convert_table_to_tuple(self, table):
-        return [ (value) for key, value in table.items()]
+    # def convert_table_to_tuple(self, table):
+    #     return [ (value) for key, value in table.items()]
 
     def attributes(self, parameter=None):
         parameters = {
@@ -384,22 +385,22 @@ class SwitchBoard(object):
             raise Exception("Error at parameters!")
         return json.dumps(parameters)
 
-    def format(self, parameter=None):
-        parameters = {
-                "tag": "^\w{0,10}$",
-                "label": "^\w{0,10$",
-                "description": "^\w{0,10$",
-                "line_voltage": "^\w{0,10$",
-                "phases": "^\w{0,10$",
-                "distance": "^\w{0,10$",
-                "demand_factor": "^\w{0,10$",
-                "fct": "^\w{0,10$",
-                "fca": "^\w{0,10$",
-                "fcs": "^\w{0,10$",
-            }
-        try:
-            if parameter is not None:
-                return json.dumps(parameters[parameter])
-        except (KeyError, NameError):
-            raise Exception("Error at parameters!")
-        return json.dumps(parameters)
+    # def format(self, parameter=None):
+    #     parameters = {
+    #             "tag": "^\w{0,10}$",
+    #             "label": "^\w{0,10$",
+    #             "description": "^\w{0,10$",
+    #             "line_voltage": "^\w{0,10$",
+    #             "phases": "^\w{0,10$",
+    #             "distance": "^\w{0,10$",
+    #             "demand_factor": "^\w{0,10$",
+    #             "fct": "^\w{0,10$",
+    #             "fca": "^\w{0,10$",
+    #             "fcs": "^\w{0,10$",
+    #         }
+    #     try:
+    #         if parameter is not None:
+    #             return json.dumps(parameters[parameter])
+    #     except (KeyError, NameError):
+    #         raise Exception("Error at parameters!")
+    #     return json.dumps(parameters)

@@ -282,7 +282,7 @@ class SwitchBoard(object):
             reactive_current = reactive / (3 * phase_voltage)
         return round(active_current, 2), round(apparent_current, 2), round(reactive_current, 2)
 
-    def board(self):
+    def distribution_board(self):
         assert (self.quantity_elements() > 0), "The Switchboard has no elements to calculate!"
         matrix_current, table = [], []
         for element in self.elements:

@@ -52,7 +52,7 @@ class Middle(ttk.Frame):
         #         self.controller.frames[WhichProperties].values[item].destroy()
         #     selected = getvalue(self.controller.frames[Tree].elements, self.selected[0])
         #     if isinstance(selected, SwitchBoard):
-        #         x = selected.board()
+        #         x = selected.distribution_board()
         #         self.controller.frames[WhichProperties].screen(selected.convert_table_to_tuple(x))
         #     self.controller.frames[WhichProperties].screen(selected.attributes())
 
@@ -66,6 +66,7 @@ class Middle(ttk.Frame):
         self.tree.heading("# 2", text="Company")
         for line in self.table:
             self.tree.insert('', 'end', text="1", values=(line['tag'], line['phase_voltage']))
+
 
 class WhichProperties(ttk.Frame):
     def __init__(self, parent, controller):
@@ -212,10 +213,10 @@ class Tree(ttk.Treeview):
             self.controller.frames[WhichProperties].values[item].destroy()
         selected = getvalue(self.controller.frames[Tree].elements, self.selected[0])
         if isinstance(selected, SwitchBoard):
-            x = selected.board()
+            x = selected.distribution_board()
             print(x)
-            self.controller.frames[Middle].refresh(selected.board())
-            # self.controller.frames[WhichProperties].screen(selected.board())
+            self.controller.frames[Middle].refresh(selected.distribution_board())
+            # self.controller.frames[WhichProperties].screen(selected.distribution_board())
         self.controller.frames[WhichProperties].screen(selected.attributes())
         # except IndexError:
         #     pass
@@ -298,11 +299,12 @@ class GUI:
         self.toplevel = toplevel
         self.master = None
         self.frame = None
+        self.main_frame = None
         self.screen_width = 0
         self.screen_height = 0
         self.frames = {}
         self.initial_settings()
-        self.initialize()
+        self.initialize_screen()
         # self.toplevel.bind('<Configure>', self.resize)
 
     def initial_settings(self):
@@ -322,6 +324,54 @@ class GUI:
             self.screen_height = event.height
             # self.resize_main_window()
 
+    def initialize_screen(self):
+        self.toplevel.geometry(str(int(self.screen_width)) + "x" + str(int(self.screen_height)))
+        # self.toplevel.rowconfigure(9, {'minsize': 30})
+        # self.toplevel.columnconfigure(2, {'minsize': 30})
+
+        ROW_GRID_BUTTON = 0
+        ROW_GRID_MAIN = 1
+
+        # Main container
+        self.master = ttk.Frame(self.toplevel, padding="3 3 12 12")
+        button_frame = ttk.Frame(self.master)
+        self.main_frame = ttk.Frame(self.master)
+        self.main_frame.grid_propagate(False)
+        button_frame.grid(column=0, row=ROW_GRID_BUTTON, stick=(tk.N, tk.W, tk.E, tk.S))
+        self.main_frame.grid(column=0, row=ROW_GRID_MAIN, stick=(tk.N, tk.W, tk.E, tk.S))
+        self.master.grid(column=0, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+        # Button Tuple (str:Button Text, str:Image Path, method: command)
+        buttons = [("New", '', self.new),
+                   ("Save", '', self.save),
+                   ("Load", '', self.load)]
+        for index, item in enumerate(buttons):
+            text, image, command = item
+            button = tk.Button(button_frame, text=text, command=command)
+            button.grid(column=index,  row=0, sticky=tk.W)
+
+        position = [tk.N + tk.W + tk.NW, tk.N, tk.N + tk.E + tk.NE]
+        # Build three columns (frame1=Tree, Frame2=Middle, Frame3=WhichProperties)
+        # Frame 1 is size X
+        # Frame 2 is size X * 3
+        # Frame 3 is size X
+        height = int(self.screen_height) * .95
+        for index_frame, F in enumerate([Tree, Middle, WhichProperties]):
+            width = int(self.screen_width / 5)
+            if index_frame == 1:
+                width *= 3
+            # self.frame = tk.Frame(self.master, width=width, height=height)
+            # self.frame.grid_propagate(False)
+            # self.frame.grid(column=index_frame, row=ROW_GRID_MAIN)
+            container = F(self.main_frame, self)
+            self.frames[F] = container
+            # container.grid(column=index_frame, row=0, stick=(tk.N, tk.W, tk.E, tk.S))
+            container.grid(column=index_frame, row=0, stick=position[index_frame])
+            if index_frame == 1 or index_frame == 2:
+                yscrollbar = tk.Scrollbar(container, width=10, orient=tk.VERTICAL)
+                yscrollbar.grid(column=19, row=0, rowspan=50, stick=tk.N + tk.S + tk.W + tk.E)
+                xscrollbar = tk.Scrollbar(container, width=10, orient=tk.HORIZONTAL)
+                xscrollbar.grid(column=0, row=50, columnspan=19, stick=tk.N + tk.E + tk.S + tk.W)
+
     def initialize(self):
         self.toplevel.geometry(str(int(self.screen_width)) + "x" + str(int(self.screen_height)))
         # self.toplevel.rowconfigure(9, {'minsize': 30})
@@ -332,6 +382,7 @@ class GUI:
 
         # Main container
         self.master = ttk.Frame(self.toplevel, padding="3 3 12 12")
+
         self.master.grid(column=0, row=ROW_GRID_BUTTON, stick=(tk.N, tk.W, tk.E, tk.S))
         self.master.grid(column=0, row=ROW_GRID_MAIN, stick=(tk.N, tk.W, tk.E, tk.S))
         # Button Tuple (str:Button Text, str:Image Path, method: command)
@@ -359,7 +410,7 @@ class GUI:
                 width *= 3
             self.frame = tk.Frame(self.master, width=width, height=height)
             self.frame.grid_propagate(False)
-            self.frame.grid(column=index_frame, row=ROW_GRID_MAIN)
+            # self.frame.grid(column=index_frame, row=ROW_GRID_MAIN)
             container = F(self.frame, self)
             self.frames[F] = container
             self.frame.grid(column=index_frame, row=ROW_GRID_MAIN, stick=(tk.N, tk.W, tk.E, tk.S))
@@ -372,8 +423,10 @@ class GUI:
 
     def new(self):
         # self.frames[Tree].delete(*self.frames[Tree].get_children())
-        self.frames[Tree] = Tree(self.frame, self)
+        container = Tree(self.frame, self)
+        self.frames[Tree] = container
         self.frame.grid(column=0, row=1, stick=(tk.N, tk.W, tk.E, tk.S))
+        # container.grid(column=0, row=0, stick=tk.N + tk.W + tk.NW)
 
     def save(self):
         # self.elementos(self.frames[Tree].elements)
@@ -382,6 +435,7 @@ class GUI:
         output_file.close()
 
     def load(self):
+        self.new()
         input_file = open('output.chr', "rb")
         self.frames[Tree].elements = pickle.load(input_file)
         input_file.close()
